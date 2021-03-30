@@ -1,0 +1,55 @@
+version: "3"
+services:
+  some-postgres:
+    image: postgres
+    volumes:
+      - ./auth-service/database:/var/lib/postgresql/data
+    # ports:
+    #   - 5000:5432
+    environment:
+      POSTGRES_PASSWORD: mysecretpassword
+  be-postgres:
+    image: postgres
+    volumes:
+      - ./backend-service/database:/var/lib/postgresql/data
+    # ports:
+    #   - 5040:5432
+    environment:
+      POSTGRES_PASSWORD: mysecretpassword
+  redis:
+    image: redis
+    ports:
+      - 6000:6379
+  auth-service:
+    build:
+      dockerfile: Dockerfile
+      context: ./auth-service
+    entrypoint: ["/bin/sh", "./entrypoint.sh"]
+    ports:
+      - 7000:7000
+    depends_on:
+      - redis
+      - some-postgres
+    env_file:
+      - ./auth-service/.env
+  backend:
+    build:
+      dockerfile: Dockerfile
+      context: ./backend-service
+    entrypoint: ["/bin/sh", "./entrypoint.sh"]
+    ports:
+      - 1337:3000
+    depends_on:
+      - auth-service
+      - be-postgres
+    env_file:
+      - ./backend-service/.env 
+  frontend:
+    build:
+      dockerfile: Dockerfile
+      context: ./cms-fe
+    ports:
+      - 80:80
+    depends_on: 
+      - backend
+    
